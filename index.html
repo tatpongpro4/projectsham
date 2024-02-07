@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>แชมแชมสู้ๆ</title>
+    <!-- Vuetify CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@2.6.0/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.8/dist/vue.js"></script>
+    <!-- Vuetify.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.6.0/dist/vuetify.js"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <v-app>
+        <v-container>
+          <v-form>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field label="เลข PO" v-model="poNumber"></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  label="ชื่อลูกค้า"
+                  v-model="customerName"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  label="วันที่จัดส่ง"
+                  type="date"
+                  v-model="deliveryDate"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-select
+                  label="วิธีจัดส่ง"
+                  :items="deliveryMethods"
+                  v-model="selectedDeliveryMethod"
+                  solo
+                ></v-select>
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                  label="ที่อยู่"
+                  v-model="addressDetails"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  label="จังหวัด"
+                  v-model="selectedProvince"
+                  :items="provinces"
+                  item-text="name"
+                  item-value="id"
+                  @change="onProvinceChange"
+                  solo
+                  return-object
+                ></v-autocomplete>
+              </v-col>
+              <!-- Autocomplete for selecting amphure -->
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-model="selectedAmphure"
+                  :items="selectedProvinceAmphures"
+                  item-text="name_th"
+                  item-value="id"
+                  label="อำเภอ"
+                  :disabled="!selectedProvince"
+                  @change="onAmphureChange"
+                  return-object
+                  solo
+                ></v-autocomplete>
+              </v-col>
+              <v-col cols="12" md="6">
+                <!-- Autocomplete for selecting tambon -->
+                <v-autocomplete
+                  v-model="selectedTambon"
+                  :items="selectedAmphureTambons"
+                  item-text="name_th"
+                  item-value="id"
+                  label="ตำบล"
+                  :disabled="!selectedAmphure"
+                  @change="onTambonChange"
+                  return-object
+                  solo
+                ></v-autocomplete>
+              </v-col>
+
+              <!-- รหัสไปรษณีย์ -->
+              <v-col cols="12" md="6">
+                <v-text-field
+                  label="รหัสไปรษณีย์"
+                  v-model="postalCode"
+                  readonly
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-text-field
+                  label="ชื่อผู้รับ"
+                  v-model="recipientName"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  label="เบอร์โทรติดต่อผู้รับ"
+                  v-model="recipientContact"
+                  :mask="'###-###-####'"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12">
+                <v-btn color="success" @click="addProduct">เพิ่มสินค้า</v-btn>
+                <v-container>
+                  <v-row v-for="(product, index) in products" :key="index">
+                    <v-col cols="12" md="6">
+                      <v-text-field
+                        label="ชื่อสินค้า"
+                        v-model="product.name"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="6" md="1">
+                      <v-text-field
+                        label="จำนวน"
+                        type="number"
+                        v-model="product.quantity"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="6" md="1">
+                      <v-autocomplete
+                        label="หน่วย"
+                        v-model="product.unit"
+                        :items="unit"
+                        item-text="name"
+                        item-value="symbol"
+                        solo
+                      ></v-autocomplete>
+                    </v-col>
+                    <v-col cols="6" md="2">
+                      <v-text-field
+                        label="ราคาต่อหน่วย"
+                        type="number"
+                        v-model="product.price"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="2">
+                      <v-btn color="error" @click="removeProduct(index)"
+                        >ลบ</v-btn
+                      >
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-col>
+              <v-col cols="12">
+                <v-btn color="secondary" c @click="addNote">เพิ่มหมายเหตุ</v-btn>
+                <v-container>
+                  <v-row v-for="(note, index) in notes" :key="index">
+                    <v-col cols="12" md="10">
+                      <v-text-field
+                        label="หมายเหตุ"
+                        v-model="note.text"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="2">
+                      <v-btn color="error" @click="removeNote(index)">ลบ</v-btn>
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-col>
+              <!--  <v-col cols="12">
+                <v-btn color="success" @click="submitForm">ส่งฟอร์ม</v-btn>
+              </v-col> -->
+            </v-row>
+          </v-form>
+          <div >
+            <div><b>OUTPUT</b>  <v-btn color="success" @click="copyToClipboard"
+              >Copy to Clipboard</v-btn
+            ></div>
+            <div class="output-box" ref="outputText">
+              <div>{{ "เลข PO: " + poNumber }}</div>
+              
+
+              <div>{{ "ชื่อลูกค้า: " + customerName }}</div>
+              
+
+              <div>
+                {{ "วันที่จัดส่งสินค้า: " + formatDeliveryDate(deliveryDate) }}
+              </div>
+              
+
+              <div>{{ "วิธีจัดส่ง: " + selectedDeliveryMethod }}</div>
+              
+              <div>
+                {{ "ที่อยู่จัดส่ง : " + addressDetails }} 
+                {{ " ตำบล: " + selectedTambon?.name_th }}
+                {{ "อำเภอ: " + selectedAmphure?.name_th }} {{ "จังหวัด:" +
+                selectedProvince?.name }}
+                {{ "รหัสไปรษณีย์: " + postalCode }}
+              </div>
+              
+
+              <div>{{ "ชื่อผู้รับ: " + recipientName }}</div>
+              
+
+              <div>{{ "เบอร์โทรติดต่อผู้รับ: " + recipientContact }}</div>
+              
+
+              <div>
+                <div v-for="product in products" :key="product.id">
+                  {{ "สินค้า: " + product.name + " จำนวน: " +
+                  product.quantity+product.unit + "(" + product.price + " บาท)" }}
+                </div>
+              </div>
+              
+
+              <div>
+                {{ "หมายเหตุ: " }}
+  
+                <div v-for="note in notes" :key="note.id">
+                  {{ "-" + note.text }}
+                </div>
+              </div>
+            </div>
+           
+          </div>
+          
+        </v-container>
+      </v-app>
+    </div>
+
+    <script>
+      new Vue({
+        el: "#app",
+        vuetify: new Vuetify(),
+        data: () => ({
+          poNumber: "",
+          customerName: "",
+          deliveryDate: "",
+          deliveryMethods: ["รถบริษัท", "จัดส่งเอง", "ลูกค้ามารับ", "IEL"],
+          selectedDeliveryMethod: "",
+          addressDetails: "",
+          recipientName: "",
+          recipientContact: "",
+          products: [],
+          notes: [],
+          unit: [
+            { name: "กิโลกรัม", symbol: "kg" },
+            { name: "กรัม", symbol: "g" },
+            { name: "ตัน", symbol: "t" },
+            { name: "มิลลิกรัม", symbol: "mg" },
+            { name: "ปอนด์", symbol: "lb" },
+            { name: "ออนซ์", symbol: "oz" },
+            { name: "เตียร์", symbol: "st" },
+            { name: "นิวตัน", symbol: "N" },
+            { name: "กิโลนิวตัน", symbol: "kN" },
+          ],
+
+          selectedProvince: null,
+          selectedAmphure: null,
+          selectedTambon: null,
+          provinces: [], // Array ของจังหวัด
+          provinceData: {}, // Object ที่มี key เป็น id ของจังหวัดและมี value เป็น object ของข้อมูลอำเภอและตำบล
+          postalCode: "",
+        }),
+        mounted() {
+          this.fetchProvince();
+        },
+        computed: {
+          selectedProvinceAmphures() {
+            return this.selectedProvince
+              ? this.provinceData[this.selectedProvince.id].amphure
+              : [];
+          },
+          selectedAmphureTambons() {
+            return this.selectedAmphure
+              ? this.selectedProvinceAmphures.find(
+                  (item) => item.id == this.selectedAmphure.id
+                ).tambon
+              : [];
+          },
+        },
+        methods: {
+          findProvinceNameById() {
+            console.log(this.selectedProvince);
+            return this.selectedProvince?.name_th;
+          },
+
+          copyToClipboard() {
+            const outputText = this.$refs.outputText.innerText; // อ่านข้อความจาก refs
+            navigator.clipboard
+              .writeText(outputText)
+              .then(() => {
+                alert("Copied to clipboard!"); // แสดงการยืนยันเมื่อคัดลอกเสร็จสิ้น
+              })
+              .catch((err) => {
+                console.error("Error copying text to clipboard", err);
+              });
+          },
+          async fetchProvince() {
+            try {
+              const response = await fetch(
+                "https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json"
+              );
+              const data = await response.json();
+              this.provinces = data.map((province) => ({
+                id: province.id,
+                name: province.name_th,
+              }));
+              this.provinceData = data.reduce((acc, province) => {
+                acc[province.id] = province;
+                return acc;
+              }, {});
+            } catch (error) {
+              console.error("Error fetching data:", error);
+            }
+          },
+          addProduct() {
+            this.products.push({ name: "", quantity: null, price: null });
+          },
+          removeProduct(index) {
+            this.products.splice(index, 1);
+          },
+          addNote() {
+            this.notes.push({ text: "" });
+          },
+          removeNote(index) {
+            this.notes.splice(index, 1);
+          },
+          submitForm() {
+            console.log("Form submitted:", this.$data);
+            // ส่งข้อมูลไปยังเซิร์ฟเวอร์หรือ API ตามความต้องการ
+          },
+          onProvinceChange() {
+            (this.selectedAmphure = null),
+              (this.selectedTambon = null),
+              (this.postalCode = "");
+          },
+          onAmphureChange() {
+            (this.selectedTambon = null), (this.postalCode = "");
+          },
+          onTambonChange() {
+            this.postalCode = "";
+          },
+          formatDeliveryDate(date) {
+            if (!date) return "";
+            const [year, month, day] = date.split("-");
+            return `${day}/${month}/${parseInt(year) + 543}`; // แปลงเป็นรูปแบบวัน/เดือน/ปี พ.ศ.
+          },
+        },
+        watch: {
+          selectedTambon(val) {
+            if (val) {
+              this.postalCode = this.selectedAmphureTambons.find(
+                (item) => item.id == val.id
+              ).zip_code;
+            } else {
+              this.postalCode = null;
+            }
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  .output-box {
+    background-color: #f5f5f5; /* สีเทาอ่อน */
+    border-radius: 8px; /* ขอบมน */
+    padding: 15px; /* ระยะห่างภายใน */
+    margin-top: 10px; /* ระยะห่างจากองค์ประกอบด้านบน */
+    white-space: pre-line;
+
+  }
+</style>
